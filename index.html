@@ -35,7 +35,9 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(22px,6vw,34px);l
 h1 em{font-style:normal;color:var(--accent)}
 .sync{font-size:12px;color:var(--mute);display:flex;gap:6px;align-items:center}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--mute)}.dot.on{background:var(--good)}
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-block:10px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-block:10px}
+.tabs button{padding:12px 4px}
+.sch-team{font-size:16px;font-weight:700;margin:2px 0 2px}.sch-team .cls{display:inline;margin-left:6px}
 .tabs button{font:inherit;font-weight:700;padding:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;cursor:pointer}
 .tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -104,9 +106,11 @@ input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid
   </header>
   <div class="tabs" role="tablist">
     <button role="tab" id="tabPub" aria-selected="true">📅 일정·결과</button>
+    <button role="tab" id="tabSch" aria-selected="false">🔍 검색</button>
     <button role="tab" id="tabAdm" aria-selected="false">🔒 관리자</button>
   </div>
   <main id="pub"></main>
+  <main id="sch" hidden></main>
   <main id="adm" hidden></main>
 </div>
 <div id="toast" class="toast" hidden></div>
@@ -195,7 +199,7 @@ function initFirebase(){
   rdb.ref("state").on("value",snap=>{
     const v=snap.val();fbOK=true;
     if(v&&v.json){try{S=JSON.parse(v.json)}catch(e){}}
-    setSync();renderPub();refreshSel();
+    setSync();renderPub();refreshSel();updateSch();
   },()=>{fbOK=false;setSync()});
   auth.onAuthStateChanged(u=>{adminOn=!!u;if(tab==="adm")renderAdm()});
 }
@@ -210,6 +214,7 @@ function table(lid,g){
   const L=lg(lid),names=L.groups[g];
   const R=Object.fromEntries(names.map(n=>[n,{t:n,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}]));
   const ms=S.matches.filter(m=>m.lg===lid&&m.st==="g"&&m.grp===g);
+  const complete=ms.length>0&&ms.every(played);
   ms.filter(played).forEach(m=>{
     const a=R[m.t1],b=R[m.t2];if(!a||!b)return;
     const x=+m.s1,y=+m.s2;a.p++;b.p++;a.gf+=x;a.ga+=y;b.gf+=y;b.ga+=x;
@@ -238,14 +243,13 @@ function table(lid,g){
           const pr=r=>isNum(S.pkRank?.[lid+"|"+r.t])?+S.pkRank[lid+"|"+r.t]:null;
           const anyPk=sub.every(r=>pr(r)!==null);
           sub.sort((a,b)=>(pr(a)??99)-(pr(b)??99));
-          sub.forEach(r=>r.tie=!anyPk||new Set(sub.map(pr)).size<sub.length);
+          sub.forEach(r=>r.tie=complete&&(!anyPk||new Set(sub.map(pr)).size<sub.length));
         }
         k=e;
       }
     }
     out.push(...grp);i=j;
   }
-  const complete=ms.length>0&&ms.every(played);
   return {rows:out,complete,ties:out.some(r=>r.tie)};
 }
 function overall(lid){ // 단일 조 리그
@@ -304,8 +308,8 @@ function renderPub(){
   if(selSub!=="본선"){
     h+=tableHTML(selLg,selSub);
     h+=`<p class="note">승점 승 3 · 무 1 · 패 0 → 동률이면 득실차 → 승자승 → 승부차기 순으로 순위를 정합니다. 강조 표시는 본선 진출권입니다.</p>`;
-    h+=`<h2>${label(selSub)} 경기 결과</h2>`;
-  }else h+=`<h2>${L.name} 본선 <span class="tag">조별 순위 확정 후 자동 배정</span></h2>`;
+    h+=`<h2>${label(selSub)} 경기 일정 및 결과</h2>`;
+  }else h+=`<h2>${L.name} 본선 경기 일정 및 결과 <span class="tag">조별 순위 확정 후 자동 배정</span></h2>`;
   let cur="";
   ms.forEach(m=>{const d=m.date;if(d!==cur){cur=d;h+=`<div class="day${d?"":" tbd"}">${d?"📅 ":""}${fmtDate(d)}${relDay(d)?`<span class="rel">${relDay(d)}</span>`:""}</div>`}h+=matchHTML(m)});
   if(!ms.length)h+=`<div class="empty">등록된 경기가 없습니다.</div>`;
@@ -316,6 +320,37 @@ $("pub").addEventListener("click",e=>{
   if(b){selLg=b.dataset.lg;selSub="";saveUi();renderPub()}
   else if(s){selSub=s.dataset.sub;saveUi();renderPub()}
 });
+
+/* ============ 검색 (학년·반으로 경기 찾기) ============ */
+let schG="",schC="";
+function buildSch(){
+  $("sch").innerHTML=`<div class="card"><h2 style="margin-top:0">🔍 우리 반 경기 찾기</h2>
+  <div class="grid"><div><label for="sG">학년</label><select id="sG"><option value="">학년 선택</option>${[1,2,3].map(n=>`<option value="${n}" ${schG==n?"selected":""}>${n}학년</option>`).join("")}</select></div>
+  <div><label for="sC">반</label><select id="sC"><option value="">전체 반</option>${Array.from({length:10},(_,i)=>i+1).map(n=>`<option value="${n}" ${schC==n?"selected":""}>${n}반</option>`).join("")}</select></div></div></div><div id="schOut"></div>`;
+  $("sG").onchange=()=>{schG=$("sG").value;updateSch()};
+  $("sC").onchange=()=>{schC=$("sC").value;updateSch()};
+  updateSch();
+}
+function updateSch(){
+  const out=$("schOut");if(!out)return;
+  if(!schG){out.innerHTML=`<div class="card empty">학년과 반을 고르면 해당 학급의 경기 일정과 결과가 나옵니다.</div>`;return}
+  const key=schC?`${schG}학년 ${schC}반`:null,found=[];
+  LEAGUES.forEach(L=>Object.entries(L.groups).forEach(([g,names])=>names.forEach(n=>{
+    const c=cls(n).c;if(key?c===key:c.startsWith(schG+"학년 "))found.push({L,g,n,c});
+  })));
+  found.sort((a,b)=>(parseInt(a.c.split(" ")[1])-parseInt(b.c.split(" ")[1]))||LEAGUES.indexOf(a.L)-LEAGUES.indexOf(b.L));
+  if(!found.length){out.innerHTML=`<div class="card empty">${key?key:schG+"학년"}에 해당하는 참가 팀이 없습니다.</div>`;return}
+  out.innerHTML=found.map(({L,g,n})=>{
+    const x=cls(n),t=table(L.id,g),i=t.rows.findIndex(r=>r.t===n),r=t.rows[i];
+    const ms=S.matches.filter(m=>m.lg===L.id&&(resolve(m,m.t1)===n||resolve(m,m.t2)===n))
+      .sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||a.time.localeCompare(b.time)||a.seq-b.seq);
+    const rec=r&&r.p>0?`현재 ${g==="전체"?"":g+"조 "}${i+1}위 · 승점 ${r.pts} · ${r.p}경기 ${r.w}승 ${r.d}무 ${r.l}패 (득실 ${r.gd>0?"+":""}${r.gd})`:"아직 치른 경기가 없습니다.";
+    return `<div class="card"><div class="mmeta"><b>${L.name}</b><span>${L.sport}</span>${g==="전체"?"":`<span>${g}조</span>`}</div>
+    <div class="sch-team">${esc(x.n)}<span class="cls">${esc(x.c)}</span></div><p class="note" style="margin:0 0 10px">${rec}</p>
+    ${ms.map(matchHTML).join("")||'<div class="empty">배정된 경기가 없습니다.</div>'}
+    <p class="note">본선(준결승·결승) 경기는 진출이 확정되면 자동으로 표시됩니다.</p></div>`;
+  }).join("");
+}
 
 /* ============ 관리자 화면 ============ */
 function optLabel(m){const a=resolve(m,m.t1)||m.t1,b=resolve(m,m.t2)||m.t2;
@@ -424,11 +459,11 @@ $("adm").addEventListener("click",e=>{
 
 /* ============ 탭 / 시작 ============ */
 function setTab(t){
-  tab=t;saveUi();$("tabPub").setAttribute("aria-selected",t==="pub");$("tabAdm").setAttribute("aria-selected",t==="adm");
-  $("pub").hidden=t!=="pub";$("adm").hidden=t!=="adm";
-  if(t==="adm")renderAdm();
+  tab=t;saveUi();
+  [["pub","tabPub"],["sch","tabSch"],["adm","tabAdm"]].forEach(([k,b])=>{$(b).setAttribute("aria-selected",t===k);$(k).hidden=t!==k});
+  if(t==="adm")renderAdm();if(t==="sch")buildSch();
 }
-$("tabPub").onclick=()=>setTab("pub");$("tabAdm").onclick=()=>setTab("adm");
+$("tabPub").onclick=()=>setTab("pub");$("tabSch").onclick=()=>setTab("sch");$("tabAdm").onclick=()=>setTab("adm");
 
 setSync();renderPub();setTab(tab);initFirebase();
 </script>
