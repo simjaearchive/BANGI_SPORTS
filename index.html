@@ -62,6 +62,10 @@ td.pts{font-weight:700;font-size:15px}
 .warn{color:var(--warn);font-weight:700}
 .day{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:17px;font-weight:700;color:var(--ink);margin:22px 0 8px;padding:9px 14px;border-radius:10px;background:var(--panel2);box-shadow:inset 4px 0 var(--accent)}
 .day.tbd{color:var(--mute);background:transparent;border:1px dashed var(--line);box-shadow:none}
+.dcnt{margin-left:auto;font-size:12px;font-weight:500;color:var(--mute)}
+.lgtag{font-weight:700;padding:1px 8px;border-radius:5px;background:var(--panel2);color:var(--ink)}
+.lg-rb{color:var(--accent)}.lg-ss{color:var(--good)}.lg-ym{color:var(--warn)}
+.match.cm{padding:8px 12px;margin-bottom:6px}
 .rel{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent);color:var(--accent-ink)}
 .when{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;margin-bottom:8px}
 .when .d{font-size:15px;font-weight:700;color:var(--accent)}.when .d.tbd{color:var(--mute)}
@@ -170,9 +174,9 @@ function defaults(){
 
 /* ============ 상태 / 저장 (Firebase Realtime Database) ============ */
 const CFG=window.FIREBASE_CONFIG||{};
-let S=defaults(),adminOn=false,selLg="rb",selSub="",selId=null,tab="pub",rdb=null,auth=null,fbOK=false;
-try{const u=JSON.parse(sessionStorage.getItem("ui")||"{}");selLg=u.lg||selLg;selSub=u.sub||"";selId=u.id||null;tab=u.tab||"pub"}catch(e){}
-function saveUi(){try{sessionStorage.setItem("ui",JSON.stringify({lg:selLg,sub:selSub,id:selId,tab}))}catch(e){}}
+let S=defaults(),adminOn=false,selLg="rb",selSub="",selId=null,tab="pub",pv="date",rdb=null,auth=null,fbOK=false;
+try{const u=JSON.parse(sessionStorage.getItem("ui")||"{}");selLg=u.lg||selLg;selSub=u.sub||"";selId=u.id||null;tab=u.tab||"pub";pv=u.pv||"date"}catch(e){}
+function saveUi(){try{sessionStorage.setItem("ui",JSON.stringify({lg:selLg,sub:selSub,id:selId,tab,pv}))}catch(e){}}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const lg=id=>LEAGUES.find(l=>l.id===id);
@@ -309,8 +313,7 @@ function tableHTML(lid,g){
   return `<h2>${g==="전체"?"실시간 순위표":g+"조 순위표"}<span class="tag">${t.complete?"조별 경기 종료":"진행 중"}</span></h2>
   <div class="scroll"><table><thead><tr><th>순위</th><th class="team">학급 / 팀</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득점</th><th>실점</th><th>득실</th><th>승점</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
-function renderPub(){
-  const el=$("pub");
+function leagueViewHTML(){
   const chips=LEAGUES.map(l=>{const ms=S.matches.filter(m=>m.lg===l.id);return `<button class="chip" data-lg="${l.id}" aria-pressed="${l.id===selLg}">${l.name}<small>${l.sport} · ${ms.filter(m=>m.done).length}/${ms.length}</small></button>`}).join("");
   const L=lg(selLg),gs=Object.keys(L.groups),subs=[...gs,"본선"];
   if(!subs.includes(selSub))selSub=gs[0];
@@ -327,11 +330,39 @@ function renderPub(){
   let cur="";
   ms.forEach(m=>{const d=m.date;if(d!==cur){cur=d;h+=`<div class="day${d?"":" tbd"}">${d?"📅 ":""}${fmtDate(d)}${relDay(d)?`<span class="rel">${relDay(d)}</span>`:""}</div>`}h+=matchHTML(m)});
   if(!ms.length)h+=`<div class="empty">등록된 경기가 없습니다.</div>`;
-  el.innerHTML=h;fitNames();
+  return h;
+}
+const LGTAG={rb:"무지개",ss:"새싹",ym:"열매"};
+function compactHTML(m){
+  const a=resolve(m,m.t1),b=resolve(m,m.t2),w=winner(m),pl=played(m);
+  const cell=(raw,res,win)=>`<div class="t ${win?"w":""} ${res?"":"ph"}">${res?teamHTML(res):esc(raw)}</div>`;
+  const pk=pl&&+m.s1===+m.s2&&isNum(m.p1)&&isNum(m.p2)?`<div class="pk">승부차기 ${m.p1} : ${m.p2}</div>`:"";
+  const stage=m.st==="g"?(m.grp==="전체"?"조별":m.grp+"조"):m.grp;
+  return `<div class="match cm ${m.done?"done":""}"><div class="mmeta"><span class="lgtag lg-${m.lg}">${LGTAG[m.lg]}</span><b>${esc(stage)}</b><span>${m.seq}경기</span><span>${esc(m.time)}</span><span>📍 ${esc(m.place)}</span><span class="badge ${m.done?"done":""}">${m.done?"종료":"예정"}</span></div>
+  <div class="mrow">${cell(m.t1,a,w&&w===a)}<div class="sc ${pl?"":"pre"}">${pl?`${+m.s1} : ${+m.s2}`:"vs"}</div>${cell(m.t2,b,w&&w===b)}</div>${pk}</div>`;
+}
+function dateViewHTML(){
+  const order=id=>LEAGUES.findIndex(l=>l.id===id);
+  const ms=[...S.matches].sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||a.time.localeCompare(b.time)||order(a.lg)-order(b.lg)||a.seq-b.seq);
+  if(!ms.length)return `<div class="empty">등록된 경기가 없습니다.</div>`;
+  const total=ms.length,done=ms.filter(m=>m.done).length;
+  let h=`<p class="note" style="margin:0 0 4px">전체 ${total}경기 중 ${done}경기 종료</p>`,cur=null,n=0;
+  const days=[...new Set(ms.map(m=>m.date))];
+  days.forEach(d=>{
+    const list=ms.filter(m=>m.date===d),dn=list.filter(m=>m.done).length;
+    h+=`<div class="day${d?"":" tbd"}">${d?"📅 ":""}${fmtDate(d)}${relDay(d)?`<span class="rel">${relDay(d)}</span>`:""}<span class="dcnt">${list.length}경기 · ${dn}경기 종료</span></div>`;
+    h+=list.map(compactHTML).join("");
+  });
+  return h;
+}
+function renderPub(){
+  const tg=`<div class="chips sub" role="tablist"><button class="chip" role="tab" data-view="date" aria-pressed="${pv==="date"}">📅 일자별</button><button class="chip" role="tab" data-view="league" aria-pressed="${pv==="league"}">🏆 리그별</button></div>`;
+  $("pub").innerHTML=tg+(pv==="date"?dateViewHTML():leagueViewHTML());fitNames();
 }
 $("pub").addEventListener("click",e=>{
-  const b=e.target.closest("[data-lg]"),s=e.target.closest("[data-sub]");
-  if(b){selLg=b.dataset.lg;selSub="";saveUi();renderPub()}
+  const b=e.target.closest("[data-lg]"),s=e.target.closest("[data-sub]"),v=e.target.closest("[data-view]");
+  if(v){pv=v.dataset.view;saveUi();renderPub()}
+  else if(b){selLg=b.dataset.lg;selSub="";saveUi();renderPub()}
   else if(s){selSub=s.dataset.sub;saveUi();renderPub()}
 });
 
