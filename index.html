@@ -227,6 +227,8 @@ const cls=t=>{const m=/^(\d학년 \d반)\s*(.*)$/.exec(t||"");return m?{c:m[1],n
 const teamHTML=t=>{const x=cls(t);return x.c?`<b>${esc(x.n)}</b><span class="cls">${esc(x.c)}</span>`:`<b>${esc(x.n)}</b>`};
 const isNum=v=>v!==""&&v!==null&&v!==undefined&&!isNaN(+v);
 const played=m=>m.done&&isNum(m.s1)&&isNum(m.s2);
+// 동점 + 승부차기 점수가 있으면 승부차기 승자(1 또는 2), 아니면 0. 득점·실점에는 반영하지 않습니다.
+const pkWin=m=>+m.s1===+m.s2&&isNum(m.p1)&&isNum(m.p2)&&+m.p1!==+m.p2?(+m.p1>+m.p2?1:2):0;
 
 function table(lid,g){
   const L=lg(lid),names=L.groups[g];
@@ -236,7 +238,8 @@ function table(lid,g){
   ms.filter(played).forEach(m=>{
     const a=R[m.t1],b=R[m.t2];if(!a||!b)return;
     const x=+m.s1,y=+m.s2;a.p++;b.p++;a.gf+=x;a.ga+=y;b.gf+=y;b.ga+=x;
-    if(x>y){a.w++;b.l++;a.pts+=3}else if(y>x){b.w++;a.l++;b.pts+=3}else{a.d++;b.d++;a.pts++;b.pts++}
+    const k=x===y?pkWin(m):0;
+    if(x>y||k===1){a.w++;b.l++;a.pts+=3}else if(y>x||k===2){b.w++;a.l++;b.pts+=3}else{a.d++;b.d++;a.pts++;b.pts++}
   });
   const rows=Object.values(R);rows.forEach(r=>r.gd=r.gf-r.ga);
   // 1) 승점 2) 득실차 3) 승자승 4) 승부차기
@@ -251,7 +254,8 @@ function table(lid,g){
       grp.forEach(r=>r.h2h=0);
       ms.filter(played).filter(m=>set.has(m.t1)&&set.has(m.t2)).forEach(m=>{
         const a=grp.find(r=>r.t===m.t1),b=grp.find(r=>r.t===m.t2),x=+m.s1,y=+m.s2;
-        if(x>y)a.h2h+=3;else if(y>x)b.h2h+=3;else{a.h2h++;b.h2h++}
+        const k=x===y?pkWin(m):0;
+        if(x>y||k===1)a.h2h+=3;else if(y>x||k===2)b.h2h+=3;else{a.h2h++;b.h2h++}
       });
       grp.sort((a,b)=>b.h2h-a.h2h);
       for(let k=0;k<grp.length;){
@@ -453,10 +457,13 @@ function renderEditor(){
   <h3 style="font-size:13px;margin:16px 0 6px">결과 입력</h3>
   <div class="score-in"><div><label for="eS1">${esc(cls(resolve(m,m.t1)||m.t1).n||"팀1")} 득점</label><input id="eS1" type="number" min="0" inputmode="numeric" value="${m.s1}"></div><b>:</b>
    <div><label for="eS2">${esc(cls(resolve(m,m.t2)||m.t2).n||"팀2")} 득점</label><input id="eS2" type="number" min="0" inputmode="numeric" value="${m.s2}"></div></div>
-  ${m.st==="k"?`<div class="score-in" style="margin-top:8px"><div><label for="eP1">승부차기 (동점일 때) 팀1</label><input id="eP1" type="number" min="0" value="${m.p1}"></div><b>:</b><div><label for="eP2">팀2</label><input id="eP2" type="number" min="0" value="${m.p2}"></div></div>`:""}
+  <div id="pkIn" hidden style="margin-top:10px"><div class="score-in"><div><label for="eP1">⚽ 승부차기 ${esc(cls(resolve(m,m.t1)||m.t1).n||"팀1")}</label><input id="eP1" type="number" min="0" inputmode="numeric" value="${m.p1}"></div><b>:</b><div><label for="eP2">승부차기 ${esc(cls(resolve(m,m.t2)||m.t2).n||"팀2")}</label><input id="eP2" type="number" min="0" inputmode="numeric" value="${m.p2}"></div></div>
+   <p class="note" style="margin-top:6px">${m.st==="k"?"토너먼트 동점이므로 승부차기 점수로 승자를 정합니다.":"조별리그도 승부차기 승자가 승리(승점 3)로 처리됩니다. 단, 득점·실점·득실차에는 반영되지 않습니다."}</p></div>
   <p class="note" style="margin-top:10px">경기 상태: <b>${m.done?"종료":"예정"}</b> · 두 팀의 득점을 입력하고 저장하면 자동으로 <b>종료</b>, 득점을 비우고 저장하면 <b>예정</b>이 됩니다.</p>
   <div class="btns"><button class="btn pri" id="saveM">저장</button><button class="btn" id="clrM">결과만 지우기</button><button class="btn dng" id="delM">경기 삭제</button></div></div>`;
   $("eDateTbd").onchange=()=>{$("eDate").disabled=$("eDateTbd").checked};
+  const togglePk=()=>{const a=$("eS1").value,b=$("eS2").value;$("pkIn").hidden=!(isNum(a)&&isNum(b)&&+a===+b)};
+  $("eS1").oninput=$("eS2").oninput=togglePk;togglePk();
   $("saveM").onclick=()=>{const c=S.matches.find(x=>x.id===m.id);c&&saveMatch(c)};
   $("clrM").onclick=()=>{const c=S.matches.find(x=>x.id===m.id);if(!c)return;c.s1=c.s2=c.p1=c.p2="";c.done=false;commit("결과를 지웠습니다.")};
   $("delM").onclick=()=>{if($("delM").dataset.s){S.matches=S.matches.filter(x=>x.id!==m.id);selId=null;commit("경기를 삭제했습니다.")}else{$("delM").dataset.s=1;$("delM").textContent="한 번 더 누르면 삭제"}};
@@ -468,7 +475,9 @@ function saveMatch(m){
   m.time=$("eTime").value.trim();m.place=$("ePlace").value.trim();m.grp=$("eGrp").value.trim()||m.grp;
   m.t1=$("eT1").value.trim();m.t2=$("eT2").value.trim();
   m.s1=s1;m.s2=s2;
-  if($("eP1")){m.p1=$("eP1").value;m.p2=$("eP2").value}
+  const tie=has1&&has2&&+s1===+s2;
+  if(tie&&(isNum($("eP1").value)!==isNum($("eP2").value))){toast("승부차기는 두 팀의 점수를 모두 입력하거나, 둘 다 비워 주세요.");return}
+  m.p1=tie?$("eP1").value:"";m.p2=tie?$("eP2").value:"";
   m.done=has1&&has2; // 득점을 입력하고 저장하면 종료, 비우면 예정
   let msg=m.done?"결과를 저장했습니다. (경기 종료)":"저장했습니다. (경기 예정)";
   if(m.done&&m.st==="k"&&+m.s1===+m.s2&&!(isNum(m.p1)&&isNum(m.p2)&&+m.p1!==+m.p2))msg+=" 토너먼트 동점이므로 승부차기 점수를 입력해야 승자가 정해집니다.";
