@@ -18,14 +18,15 @@
 :root{
   --bg:#f3f5f8;--panel:#fff;--panel2:#eef1f6;--ink:#141a28;--mute:#667088;--line:#dde2ec;
   --accent:#d6204f;--accent-ink:#fff;--good:#14804a;--warn:#b86e00;--gold:#c99700;
+  --c-rb:#7c3aed;--c-ss:#0284c7;--c-ym:#ea580c;
   --f-display:"Black Han Sans","Noto Sans KR",sans-serif;--f-body:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0c1220;--panel:#141c2e;--panel2:#1b2540;--ink:#eaeef8;--mute:#8e99b5;--line:#243050;
-  --accent:#ff4b78;--accent-ink:#1a0610;--good:#4cd48c;--warn:#f0a63a;--gold:#f5c542;color-scheme:dark}}
+  --accent:#ff4b78;--accent-ink:#1a0610;--good:#4cd48c;--warn:#f0a63a;--gold:#f5c542;--c-rb:#a78bfa;--c-ss:#38bdf8;--c-ym:#fb923c;color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0c1220;--panel:#141c2e;--panel2:#1b2540;--ink:#eaeef8;--mute:#8e99b5;--line:#243050;
-  --accent:#ff4b78;--accent-ink:#1a0610;--good:#4cd48c;--warn:#f0a63a;--gold:#f5c542;color-scheme:dark}
+  --accent:#ff4b78;--accent-ink:#1a0610;--good:#4cd48c;--warn:#f0a63a;--gold:#f5c542;--c-rb:#a78bfa;--c-ss:#38bdf8;--c-ym:#fb923c;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;padding-inline:16px;padding-block:0 48px}
 .wrap{max-width:860px;margin:0 auto}
@@ -60,23 +61,29 @@ tr.adv td:first-child{box-shadow:inset 3px 0 var(--accent)}
 td.pts{font-weight:700;font-size:15px}
 .note{font-size:12px;color:var(--mute);margin-top:6px}
 .warn{color:var(--warn);font-weight:700}
-.day{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:17px;font-weight:700;color:var(--ink);margin:22px 0 8px;padding:9px 14px;border-radius:10px;background:var(--panel2);box-shadow:inset 4px 0 var(--accent)}
+.day{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:17px;font-weight:700;color:var(--ink);margin:22px 0 8px;padding:9px 14px;border-radius:10px;background:var(--panel2)}
 .day.tbd{color:var(--mute);background:transparent;border:1px dashed var(--line);box-shadow:none}
 .dcnt{margin-left:auto;font-size:12px;font-weight:500;color:var(--mute)}
-.lgtag{font-weight:700;padding:1px 8px;border-radius:5px;background:var(--panel2);color:var(--ink)}
-.lg-rb{color:var(--accent)}.lg-ss{color:var(--good)}.lg-ym{color:var(--warn)}
-.match.cm{padding:8px 12px;margin-bottom:6px}
+.lg-rb{--c:var(--c-rb)}.lg-ss{--c:var(--c-ss)}.lg-ym{--c:var(--c-ym)}
+.chip .dotc{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:6px}
+.lgband{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:14px 0 6px;padding:2px 2px 5px;font-weight:700;font-size:14px;color:var(--c);border-bottom:2px solid var(--c)}
+.lgband span{font-weight:500;font-size:12px;color:var(--mute)}
+.lgband small{margin-left:auto;font-weight:500;font-size:12px;color:var(--mute)}
+.mrow .t.w{color:var(--good);font-weight:700}
+.mrow .t.w .cls{color:var(--good)}
+.mrow .t.w b::before{content:"✔ "}
+.mmeta b{color:var(--ink)}
 .rel{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent);color:var(--accent-ink)}
 .when{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;margin-bottom:8px}
 .when .d{font-size:15px;font-weight:700;color:var(--accent)}.when .d.tbd{color:var(--mute)}
 .when span{font-size:13px;color:var(--ink)}
 .match{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
 .mmeta{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--mute);margin-bottom:6px}
-.mmeta b{color:var(--accent)}
 .mrow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
 .mrow .t{min-width:0;font-weight:500;white-space:nowrap;font-size:15px}.mrow .t:last-child{text-align:right}
-.mrow .t.w{font-weight:700}.mrow .t.ph{color:var(--mute);font-weight:400}
+.mrow .t.ph{color:var(--mute);font-weight:400}
 .sc{font-family:var(--f-display);font-size:22px;min-width:76px;text-align:center;font-variant-numeric:tabular-nums}
+.sc .sw{color:var(--good)}
 .sc.pre{font-family:var(--f-body);font-size:12px;color:var(--mute)}
 .pk{font-size:11px;color:var(--mute);text-align:center;margin-top:2px}
 .badge{font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--panel2);color:var(--mute)}
@@ -307,8 +314,8 @@ function matchHTML(m){
   const a=resolve(m,m.t1),b=resolve(m,m.t2),w=winner(m),pl=played(m);
   const cell=(raw,res,win)=>`<div class="t ${win?"w":""} ${res?"":"ph"}">${res?teamHTML(res):esc(raw)}</div>`;
   const pk=pl&&+m.s1===+m.s2&&isNum(m.p1)&&isNum(m.p2)?`<div class="pk">승부차기 ${m.p1} : ${m.p2}</div>`:"";
-  return `<div class="match"><div class="when"><div class="d${m.date?"":" tbd"}">${fmtDate(m.date)}</div><span>${esc(m.time)}</span><span>📍 ${esc(m.place)}</span></div><div class="mmeta"><b>${esc(m.st==="g"?"조별 "+m.grp+(m.grp==="전체"?"":"조"):m.grp)}</b><span>${m.seq}경기</span><span class="badge ${m.done?"done":""}">${m.done?"종료":"예정"}</span></div>
-  <div class="mrow">${cell(m.t1,a,w&&w===a)}<div class="sc ${pl?"":"pre"}">${pl?`${+m.s1} : ${+m.s2}`:"vs"}</div>${cell(m.t2,b,w&&w===b)}</div>${pk}</div>`;
+  return `<div class="match lg-${m.lg}"><div class="when"><div class="d${m.date?"":" tbd"}">${fmtDate(m.date)}</div><span>${esc(m.time)}</span><span>📍 ${esc(m.place)}</span></div><div class="mmeta"><b>${esc(m.st==="g"?"조별 "+m.grp+(m.grp==="전체"?"":"조"):m.grp)}</b><span>${m.seq}경기</span><span class="badge ${m.done?"done":""}">${m.done?"종료":"예정"}</span></div>
+  <div class="mrow">${cell(m.t1,a,w&&w===a)}<div class="sc ${pl?"":"pre"}">${pl?`<span class="${w&&w===a?"sw":""}">${+m.s1}</span> : <span class="${w&&w===b?"sw":""}">${+m.s2}</span>`:"vs"}</div>${cell(m.t2,b,w&&w===b)}</div>${pk}</div>`;
 }
 function tableHTML(lid,g){
   const L=lg(lid),t=table(lid,g);
@@ -332,7 +339,7 @@ function leagueViewHTML(){
     h+=`<h2>${label(selSub)} 경기 일정 및 결과</h2>`;
   }else h+=`<h2>${L.name} 본선 경기 일정 및 결과 <span class="tag">조별 순위 확정 후 자동 배정</span></h2>`;
   let cur="";
-  ms.forEach(m=>{const d=m.date;if(d!==cur){cur=d;h+=`<div class="day${d?"":" tbd"}">${d?"📅 ":""}${fmtDate(d)}${relDay(d)?`<span class="rel">${relDay(d)}</span>`:""}</div>`}h+=matchHTML(m)});
+  ms.forEach(m=>{const d=m.date;if(d!==cur){cur=d;h+=`<div class="day${d?"":" tbd"}">${fmtDate(d)}${relDay(d)?`<span class="rel">${relDay(d)}</span>`:""}</div>`}h+=matchHTML(m)});
   if(!ms.length)h+=`<div class="empty">등록된 경기가 없습니다.</div>`;
   return h;
 }
@@ -342,20 +349,27 @@ function compactHTML(m){
   const cell=(raw,res,win)=>`<div class="t ${win?"w":""} ${res?"":"ph"}">${res?teamHTML(res):esc(raw)}</div>`;
   const pk=pl&&+m.s1===+m.s2&&isNum(m.p1)&&isNum(m.p2)?`<div class="pk">승부차기 ${m.p1} : ${m.p2}</div>`:"";
   const stage=m.st==="g"?(m.grp==="전체"?"조별":m.grp+"조"):m.grp;
-  return `<div class="match cm ${m.done?"done":""}"><div class="mmeta"><span class="lgtag lg-${m.lg}">${LGTAG[m.lg]}</span><b>${esc(stage)}</b><span>${m.seq}경기</span><span>${esc(m.time)}</span><span>📍 ${esc(m.place)}</span><span class="badge ${m.done?"done":""}">${m.done?"종료":"예정"}</span></div>
-  <div class="mrow">${cell(m.t1,a,w&&w===a)}<div class="sc ${pl?"":"pre"}">${pl?`${+m.s1} : ${+m.s2}`:"vs"}</div>${cell(m.t2,b,w&&w===b)}</div>${pk}</div>`;
+  return `<div class="match cm lg-${m.lg} ${m.done?"done":""}"><div class="mmeta"><b>${esc(stage)}</b><span>${m.seq}경기</span><span>${esc(m.time)}</span><span>📍 ${esc(m.place)}</span><span class="badge ${m.done?"done":""}">${m.done?"종료":"예정"}</span></div>
+  <div class="mrow">${cell(m.t1,a,w&&w===a)}<div class="sc ${pl?"":"pre"}">${pl?`<span class="${w&&w===a?"sw":""}">${+m.s1}</span> : <span class="${w&&w===b?"sw":""}">${+m.s2}</span>`:"vs"}</div>${cell(m.t2,b,w&&w===b)}</div>${pk}</div>`;
 }
+const LGICON={rb:"🌈",ss:"🌱",ym:"🍎"};
+let dvLg="";
 function dateViewHTML(){
   const order=id=>LEAGUES.findIndex(l=>l.id===id);
-  const ms=[...S.matches].sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||a.time.localeCompare(b.time)||order(a.lg)-order(b.lg)||a.seq-b.seq);
-  if(!ms.length)return `<div class="empty">등록된 경기가 없습니다.</div>`;
-  const total=ms.length,done=ms.filter(m=>m.done).length;
-  let h=`<p class="note" style="margin:0 0 4px">전체 ${total}경기 중 ${done}경기 종료</p>`,cur=null,n=0;
-  const days=[...new Set(ms.map(m=>m.date))];
-  days.forEach(d=>{
-    const list=ms.filter(m=>m.date===d),dn=list.filter(m=>m.done).length;
-    h+=`<div class="day${d?"":" tbd"}">${d?"📅 ":""}${fmtDate(d)}${relDay(d)?`<span class="rel">${relDay(d)}</span>`:""}<span class="dcnt">${list.length}경기 · ${dn}경기 종료</span></div>`;
-    h+=list.map(compactHTML).join("");
+  const all=S.matches;
+  const ms=all.filter(m=>!dvLg||m.lg===dvLg).sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||a.time.localeCompare(b.time)||order(a.lg)-order(b.lg)||a.seq-b.seq);
+  const fchip=(id,label,n)=>`<button class="chip ${id?"lg-"+id:""}" data-dv="${id}" aria-pressed="${dvLg===id}">${id?`<span class="dotc"></span>`:""}${label}<small>${n}</small></button>`;
+  let h=`<div class="chips">${fchip("","전체",all.length)}${LEAGUES.map(l=>fchip(l.id,l.name.replace(" 리그",""),all.filter(m=>m.lg===l.id).length)).join("")}</div>`;
+  if(!ms.length)return h+`<div class="empty">등록된 경기가 없습니다.</div>`;
+  h+=`<p class="note" style="margin:0 0 4px">${dvLg?lg(dvLg).name:"전체"} ${ms.length}경기 중 ${ms.filter(m=>m.done).length}경기 종료</p>`;
+  [...new Set(ms.map(m=>m.date))].forEach(d=>{
+    const list=ms.filter(m=>m.date===d);
+    h+=`<div class="day${d?"":" tbd"}">${fmtDate(d)}${relDay(d)?`<span class="rel">${relDay(d)}</span>`:""}<span class="dcnt">${list.length}경기 · ${list.filter(m=>m.done).length}경기 종료</span></div>`;
+    LEAGUES.forEach(L=>{
+      const ls=list.filter(m=>m.lg===L.id);if(!ls.length)return;
+      h+=`<div class="lgband lg-${L.id}">${L.name}<span>${L.sport}</span><small>${ls.length}경기 · ${ls.filter(m=>m.done).length}경기 종료</small></div>`;
+      h+=ls.map(compactHTML).join("");
+    });
   });
   return h;
 }
@@ -364,8 +378,9 @@ function renderPub(){
   $("pub").innerHTML=tg+(pv==="date"?dateViewHTML():leagueViewHTML());fitNames();
 }
 $("pub").addEventListener("click",e=>{
-  const b=e.target.closest("[data-lg]"),s=e.target.closest("[data-sub]"),v=e.target.closest("[data-view]");
-  if(v){pv=v.dataset.view;saveUi();renderPub()}
+  const b=e.target.closest("[data-lg]"),s=e.target.closest("[data-sub]"),v=e.target.closest("[data-view]"),dv=e.target.closest("[data-dv]");
+  if(dv){dvLg=dv.dataset.dv;renderPub()}
+  else if(v){pv=v.dataset.view;saveUi();renderPub()}
   else if(b){selLg=b.dataset.lg;selSub="";saveUi();renderPub()}
   else if(s){selSub=s.dataset.sub;saveUi();renderPub()}
 });
