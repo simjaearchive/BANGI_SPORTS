@@ -352,15 +352,20 @@ function compactHTML(m){
   <div class="mrow">${cell(m.t1,a,w&&w===a)}<div class="sc ${pl?"":"pre"}">${pl?`<span class="${w&&w===a?"sw":""}">${+m.s1}</span> : <span class="${w&&w===b?"sw":""}">${+m.s2}</span>`:"vs"}</div>${cell(m.t2,b,w&&w===b)}</div>${pk}</div>`;
 }
 const LGICON={rb:"🌈",ss:"🌱",ym:"🍎"};
-let dvLg="";
+let dvLg="",dvPast=false;
 function dateViewHTML(){
   const order=id=>LEAGUES.findIndex(l=>l.id===id);
   const all=S.matches;
-  const ms=all.filter(m=>!dvLg||m.lg===dvLg).sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||a.time.localeCompare(b.time)||order(a.lg)-order(b.lg)||a.seq-b.seq);
+  const sorted=all.filter(m=>!dvLg||m.lg===dvLg).sort((a,b)=>(a.date||"9999").localeCompare(b.date||"9999")||a.time.localeCompare(b.time)||order(a.lg)-order(b.lg)||a.seq-b.seq);
+  // 결과가 입력되지 않은 경기 중, 일정이 가장 빠른 3개 일자만 표시 (날짜 미정은 맨 뒤)
+  const pending=sorted.filter(m=>!m.done),days=[...new Set(pending.map(m=>m.date))].slice(0,3);
+  const past=sorted.filter(m=>m.done&&!days.includes(m.date)); // 표시 일자 밖의 지난 결과
+  const ms=sorted.filter(m=>days.includes(m.date)||(dvPast&&m.done)); // 해당 일자의 종료된 경기 결과도 함께 표시
   const fchip=(id,label,n)=>`<button class="chip ${id?"lg-"+id:""}" data-dv="${id}" aria-pressed="${dvLg===id}">${id?`<span class="dotc"></span>`:""}${label}<small>${n}</small></button>`;
   let h=`<div class="chips">${fchip("","전체",all.length)}${LEAGUES.map(l=>fchip(l.id,l.name.replace(" 리그",""),all.filter(m=>m.lg===l.id).length)).join("")}</div>`;
-  if(!ms.length)return h+`<div class="empty">등록된 경기가 없습니다.</div>`;
-  h+=`<p class="note" style="margin:0 0 4px">${dvLg?lg(dvLg).name:"전체"} ${ms.length}경기 중 ${ms.filter(m=>m.done).length}경기 종료</p>`;
+  if(past.length)h+=`<div class="chips sub"><button class="chip" data-past="1" aria-pressed="${dvPast}">🕘 지난 결과 보기<small>${past.length}경기</small></button></div>`;
+  if(!ms.length)return h+`<div class="empty">결과 입력 전인 경기가 없습니다.</div>`;
+  h+=`<p class="note" style="margin:0 0 4px">${dvLg?lg(dvLg).name:"전체"} 결과 입력 전 경기 ${pending.length}경기 중 일정이 빠른 ${days.length}일을 표시합니다. (종료된 경기 결과 포함 ${ms.length}경기)</p>`;
   [...new Set(ms.map(m=>m.date))].forEach(d=>{
     const list=ms.filter(m=>m.date===d);
     h+=`<div class="day${d?"":" tbd"}">${fmtDate(d)}${relDay(d)?`<span class="rel">${relDay(d)}</span>`:""}<span class="dcnt">${list.length}경기 · ${list.filter(m=>m.done).length}경기 종료</span></div>`;
@@ -378,7 +383,8 @@ function renderPub(){
 }
 $("pub").addEventListener("click",e=>{
   const b=e.target.closest("[data-lg]"),s=e.target.closest("[data-sub]"),v=e.target.closest("[data-view]"),dv=e.target.closest("[data-dv]");
-  if(dv){dvLg=dv.dataset.dv;renderPub()}
+  if(e.target.closest("[data-past]")){dvPast=!dvPast;renderPub()}
+  else if(dv){dvLg=dv.dataset.dv;renderPub()}
   else if(v){pv=v.dataset.view;saveUi();renderPub()}
   else if(b){selLg=b.dataset.lg;selSub="";saveUi();renderPub()}
   else if(s){selSub=s.dataset.sub;saveUi();renderPub()}
